@@ -36,6 +36,8 @@
   #include "../lcd/e3v2/creality/dwin.h"
 #elif ENABLED(DWIN_LCD_PROUI)
   #include "../lcd/e3v2/proui/dwin.h"
+#elif ENABLED(RTS_AVAILABLE)
+  #include "../lcd/sv06p/LCD_RTS.h"
 #endif
 
 #include "../module/planner.h"        // for synchronize
@@ -500,7 +502,7 @@ void CardReader::mount() {
     #endif
   }
 
-  ui.refresh();
+  //ui.refresh();
 }
 
 /**
@@ -609,7 +611,7 @@ void CardReader::startOrResumeFilePrinting() {
 //
 void CardReader::endFilePrintNow(TERN_(SD_RESORT, const bool re_sort/*=false*/)) {
   TERN_(ADVANCED_PAUSE_FEATURE, did_pause_print = 0);
-  TERN_(DWIN_CREALITY_LCD, HMI_flag.print_finish = flag.sdprinting);
+  //TERN_(DWIN_CREALITY_LCD, HMI_flag.print_finish = flag.sdprinting);
   flag.abort_sd_printing = false;
   if (isFileOpen()) file.close();
   TERN_(SD_RESORT, if (re_sort) presort());
@@ -1359,6 +1361,7 @@ void CardReader::fileHasFinished() {
     if (jobRecoverFileExists()) {
       recovery.init();
       removeFile(recovery.filename);
+      recovery.info.recovery_flag = false;
       #if ENABLED(DEBUG_POWER_LOSS_RECOVERY)
         SERIAL_ECHOPGM("Power-loss file delete");
         SERIAL_ECHOF(jobRecoverFileExists() ? F(" failed.\n") : F("d.\n"));

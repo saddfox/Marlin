@@ -30,6 +30,7 @@
 
 #include "powerloss.h"
 #include "../core/macros.h"
+#include "../module/stepper.h"
 
 #if ENABLED(EXTENSIBLE_UI)
   #include "../lcd/extui/ui_api.h"
@@ -60,6 +61,10 @@ uint32_t PrintJobRecovery::cmd_sdpos, // = 0
 
 #if HOMING_Z_WITH_PROBE
   #include "../module/probe.h"
+#endif
+
+#if ENABLED(RTS_AVAILABLE)
+  #include "../lcd/sv06p/LCD_RTS.h"
 #endif
 
 #if ENABLED(FWRETRACT)
@@ -203,6 +208,7 @@ void PrintJobRecovery::save(const bool force/*=false*/, const float zraise/*=POW
     // info.sdpos and info.current_position are pre-filled from the Stepper ISR
 
     info.feedrate = uint16_t(MMS_TO_MMM(feedrate_mm_s));
+    info.feedrate_percentage = feedrate_percentage;
     info.zraise = zraise;
     info.flag.raised = raised;                      // Was Z raised before power-off?
 
@@ -313,6 +319,9 @@ void PrintJobRecovery::save(const bool force/*=false*/, const float zraise/*=POW
     #else
       constexpr float zraise = 0;
     #endif
+
+    info.recovery_flag = PoweroffContinue;
+    stepper.disable_all_steppers();
 
     // Save the current position, distance that Z was (or should be) raised,
     // and a flag whether the raise was already done here.
@@ -586,6 +595,8 @@ void PrintJobRecovery::resume() {
   sprintf_P(cmd, PSTR("G1F%d"), info.feedrate);
   PROCESS_SUBCOMMANDS_NOW(cmd);
 
+  feedrate_percentage = info.feedrate_percentage;
+
   // Restore E position with G92.9
   sprintf_P(cmd, PSTR("G92.9E%s"), dtostrf(info.current_position.e, 1, 3, str_1));
   PROCESS_SUBCOMMANDS_NOW(cmd);
@@ -608,6 +619,18 @@ void PrintJobRecovery::resume() {
   PROCESS_SUBCOMMANDS_NOW(cmd);
   sprintf_P(cmd, PSTR("M24S%ldT%ld"), resume_sdpos, info.print_job_elapsed);
   PROCESS_SUBCOMMANDS_NOW(cmd);
+
+  if(Mode_flag && PrintFlag != 0)
+  {
+    rtscheck.RTS_SndData(1, Time_VP);
+    rtscheck.RTS_SndData(ExchangePageBase + 11, ExchangepageAddr);
+  }
+  else if(!Mode_flag && PrintFlag != 0)
+  {
+    rtscheck.RTS_SndData(1, Time1_VP);
+    rtscheck.RTS_SndData(ExchangePageBase + 66, ExchangepageAddr);
+  }
+  StartPrintFlag = 0;
 }
 
 #if ENABLED(DEBUG_POWER_LOSS_RECOVERY)

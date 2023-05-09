@@ -58,6 +58,8 @@
   #include "../../lcd/e3v2/creality/dwin.h"
 #elif ENABLED(DWIN_LCD_PROUI)
   #include "../../lcd/e3v2/proui/dwin.h"
+#elif ENABLED(RTS_AVAILABLE)
+  #include "../../lcd/sv06p/LCD_RTS.h"
 #endif
 
 #if ENABLED(LASER_FEATURE)
@@ -236,7 +238,7 @@ void GcodeSuite::G28() {
     set_and_report_grblstate(M_HOMING);
   #endif
 
-  TERN_(HAS_DWIN_E3V2_BASIC, DWIN_HomingStart());
+  //TERN_(HAS_DWIN_E3V2_BASIC, DWIN_HomingStart());
   TERN_(EXTENSIBLE_UI, ExtUI::onHomingStart());
 
   planner.synchronize();          // Wait for planner moves to finish!
@@ -647,9 +649,10 @@ void GcodeSuite::G28() {
 
   #endif // NUM_AXES
 
-  ui.refresh();
+  //ui.refresh();
+  //RTSUpdate();
 
-  TERN_(HAS_DWIN_E3V2_BASIC, DWIN_HomingDone());
+  TERN_(RTS_AVAILABLE, RTS_MoveAxisHoming());
   TERN_(EXTENSIBLE_UI, ExtUI::onHomingDone());
 
   report_current_position();

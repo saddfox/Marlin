@@ -56,6 +56,7 @@ typedef struct {
   // Machine state
   xyze_pos_t current_position;
   uint16_t feedrate;
+  int16_t feedrate_percentage;
 
   float zraise;
 
@@ -114,6 +115,9 @@ typedef struct {
 
   // Relative axis modes
   relative_t axis_relative;
+
+  // recovery flag
+  uint8_t recovery_flag;
 
   // Misc. Marlin flags
   struct {

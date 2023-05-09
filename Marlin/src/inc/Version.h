@@ -120,3 +120,4 @@
   #define USB_DEVICE_PRODUCT_NAME         MACHINE_NAME
 #endif
 #define USB_DEVICE_SERIAL_NAME            "123985739853"
+#define	CORP_WEBSITE_E	"sovol3d.com"

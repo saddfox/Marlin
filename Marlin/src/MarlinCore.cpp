@@ -75,7 +75,9 @@
 
 #if HAS_DWIN_E3V2
   #include "lcd/e3v2/common/encoder.h"
-  #if ENABLED(DWIN_CREALITY_LCD)
+  #if ENABLED(RTS_AVAILABLE)
+    #include "lcd/sv06p/LCD_RTS.h"
+  #elif ENABLED(DWIN_CREALITY_LCD)
     #include "lcd/e3v2/creality/dwin.h"
   #elif ENABLED(DWIN_LCD_PROUI)
     #include "lcd/e3v2/proui/dwin.h"
@@ -815,7 +817,7 @@ void idle(const bool no_stepper_sleep/*=false*/) {
   TERN_(HAS_BEEPER, buzzer.tick());
 
   // Handle UI input / draw events
-  TERN(DWIN_CREALITY_LCD, DWIN_Update(), ui.update());
+  TERN_(RTS_AVAILABLE, RTSUpdate());
 
   // Run i2c Position Encoders
   #if ENABLED(I2C_POSITION_ENCODERS)
@@ -869,6 +871,11 @@ void idle(const bool no_stepper_sleep/*=false*/) {
  */
 void kill(FSTR_P const lcd_error/*=nullptr*/, FSTR_P const lcd_component/*=nullptr*/, const bool steppers_off/*=false*/) {
   thermalManager.disable_all_heaters();
+  int i = 0;
+  while(i>4)
+  {
+    rtscheck.RTS_SndData(Beep, SoundAddr);i--;
+  }
 
   TERN_(HAS_CUTTER, cutter.kill()); // Full cutter shutdown including ISR control
 
@@ -1143,6 +1150,10 @@ void setup() {
   millis_t serial_connect_timeout = millis() + 1000UL;
   while (!MYSERIAL1.connected() && PENDING(millis(), serial_connect_timeout)) { /*nada*/ }
 
+  LCD_SERIAL.begin(BAUDRATE);
+  serial_connect_timeout = millis() + 1000UL;
+  while (!LCD_SERIAL.connected() && PENDING(millis(), serial_connect_timeout)) { /*nada*/ }
+
   #if HAS_MULTI_SERIAL && !HAS_ETHERNET
     #ifndef BAUDRATE_2
       #define BAUDRATE_2 BAUDRATE
@@ -1294,8 +1305,11 @@ void setup() {
 
   // UI must be initialized before EEPROM
   // (because EEPROM code calls the UI).
-
-  SETUP_RUN(ui.init());
+  #if HAS_DWIN_E3V2_BASIC
+    SETUP_RUN(RTSUpdate());
+  #else
+    SETUP_RUN(ui.init());
+  #endif
 
   #if PIN_EXISTS(SAFE_POWER)
     #if HAS_DRIVER_SAFE_POWER_PROTECT
@@ -1574,7 +1588,7 @@ void setup() {
   #endif
 
   #if HAS_DWIN_E3V2_BASIC
-    SETUP_RUN(DWIN_InitScreen());
+    SETUP_RUN(rtscheck.RTS_Init());
   #endif
 
   #if HAS_SERVICE_INTERVALS && !HAS_DWIN_E3V2_BASIC
